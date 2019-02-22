@@ -9,7 +9,6 @@ import sys
 
 def unzip(filename, dir, i):
     zf = zipfile.ZipFile(filename)
-
     dir = os.path.dirname(os.path.abspath(filename))
     # uncompress_size = sum((file.file_size for file in zf.infolist()))
     # extracted_size = 0
@@ -25,13 +24,10 @@ def unzip(filename, dir, i):
 
 
 def start_unzip(i, q, terminated, lock):
-    # print("{0} smth\n".format(i))
     while(not q.empty()):
         try:
             file = q.get()
             # os.system('cls')
-            # print("Extracting %d of %d zip files..." % (total-q.qsize(), total))
-            # print("Terminated: %d" % terminated)
             logging.debug('Extracting \'%s\' from thread %d', file, i)
             p = Process(target=unzip, args=(file, dir, i,))
             p.start()
@@ -42,7 +38,7 @@ def start_unzip(i, q, terminated, lock):
                 terminated += 1
                 lock.release()
                 logging.info('\'%s\' reached timeout', file)
-            sys.stdout.write("\rExtracted: %d/%d | Terminated: %d" % (total-q.qsize()-terminated, total, terminated))
+            sys.stdout.write("\rProcessing: %d/%d | Terminated: %d" % (total-q.qsize(), total, terminated))
         except Exception as e:
             logging.error('\'%s\': %s', file, e)
 
@@ -76,11 +72,6 @@ if __name__ == "__main__":
 
     logging.info('Total nr of zipfiles: %d', files.qsize())
 
-
-
-
-
-
     lock = Lock()
     t = [0 for i in range(0, args.t)]
     ttime = time.time()
@@ -94,103 +85,15 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error('Thread %d: %s', i, e)
 
-    while(time.time()-ttime <= args.gtimeout):
-        time.sleep(1)
+    active = True
+    while(time.time()-ttime <= args.gtimeout and active):
+        active = False
         for th in t:
             if(th.is_alive()):
-                break
-        break
+                active = True
+                time.sleep(1)
     else:
-        logging.info('Reached timeout')
         sys.exit()
 
-
-    # while(not files.empty()):
-    #     for i in range(0, args.t):
-    #         if(not p[i].is_alive()):
-    #             p[i].start()
-
-
-
-# j = 0
-# while((not files.empty()) or j<5):
-#     j+=1
-#     for i in range(0, args.t):
-#         if(not p[i].is_alive()):
-#             p[i].start()
-#         # else:
-#             # p[i].join()
-
-
-
-
-    # lock.acquire()
-    # c = counter
-    # counter += 1
-    # lock.release()
-    # file = q.get()
-
-
-
-
-
-
-#     counter += 1
-#     p[i].start()
-#     i = (i+1)%args.t
-#
-#     # for i in range(0, args.t):
-# for i in range(0, args.t):
-#     p[i].join()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# zf = zipfile.ZipFile('cv.zip')
-#
-# uncompress_size = sum((file.file_size for file in zf.infolist()))
-# extracted_size = 0
-#
-# for file in zf.infolist():
-#     zf.extract(file)
-#     extracted_size += file.file_size
-#     # print("%s %%" % int(extracted_size * 100/uncompress_size))
-#
-
-
-# import tqdm
-#
-# c=0
-# from tqdm import tqdm
-# for i in tqdm(range(1000000)):
-#     c+=1
-
-# import time
-# for x in range (0,5):
-#     b = "Loading" + "." * x
-#     print (b, end="\r")
-#     time.sleep(1)
-#
-# print (b)
-#
-# import time
-# import sys
-
-# pentru versiunea 2.7
-# print("cafagjgn")
-# for i in range(10):
-#     sys.stdout.write("\rCountdown: %d" % i)
-#     sys.stdout.flush()
-#     time.sleep(1)
-# print(' ')
-#
-# print('tsh')
+    if(active):
+        logging.info('Reached timeout')
