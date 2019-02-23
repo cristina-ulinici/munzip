@@ -1,0 +1,14 @@
+[General]
+log_path = C:\Users\cristina\Desktop\bit\logg2.txt
+[Sync_#1]
+src_type = DISK
+src_name = Source
+src = C:\Users\cristina\Desktop\src src
+dst_type = DISK
+dst = C:\Users\cristina\Desktop\dest dest
+dst_name = Destination
+ftp_mode = PASSIVE
+update_interval = 60
+delete_extra_dst_content = NO
+move_files = NO
+timeout = 10
