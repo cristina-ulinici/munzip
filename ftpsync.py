@@ -23,21 +23,23 @@ logging.info('Config file: %s', args.config)
 def sync(i):
     sync_nr = 'Sync_#'+ str(i+1)
     logging.debug('Thread %i started with %s', i, sync_nr)
-    src_type = config[sync_nr]['src_type']
-    src_name = config[sync_nr]['src_name']
+    # src_type = config[sync_nr]['src_type']
+    # src_name = config[sync_nr]['src_name']
     src = config[sync_nr]['src']
-    dst_type = config[sync_nr]['dst_type']
+    # dst_type = config[sync_nr]['dst_type']
     dst = config[sync_nr]['dst']
-    dst_name = config[sync_nr]['dst_name']
-    ftp_mode = config[sync_nr]['ftp_mode']
-    update_interval = config[sync_nr]['update_interval']
-    delete_extra_dst_content = config[sync_nr]['delete_extra_dst_content']
-    move_files = config[sync_nr]['move_files']
-    timeout = config[sync_nr]['timeout']
+    # dst_name = config[sync_nr]['dst_name']
+    # ftp_mode = config[sync_nr]['ftp_mode']
+    # update_interval = config[sync_nr]['update_interval']
+    # delete_extra_dst_content = config[sync_nr]['delete_extra_dst_content']
+    # move_files = config[sync_nr]['move_files']
+    # timeout = config[sync_nr]['timeout']
 
-    #  1. verific daca fisierele sunt la fel in ambele parti
-    #  2. verific daca s-au mai facut modificari in fisierele din src de la 'last update'
+    if (config[sync_nr]['delete_extra_dst_content'] == 'YES' and config[sync_nr]['move_files'] == 'YES'):
+        logging.error('Inconsistency in config file in [%s]: delete_extra_dst_content and move_files', sync_nr)
+        return
 
+    # if src_type = dst_type = DISK
     for root, dirs, files in os.walk(src):
         for d in dirs:
             src_dir = os.path.join(root, d)
@@ -72,6 +74,23 @@ def sync(i):
                     shutil.copy2(src_file, dest_file[:len(dest_file)-len(f)])
                 except Exception as e:
                     logging.error('Unable to copy %s: %s', src_file, e)
+
+
+    if(config[sync_nr]['move_files'] == 'YES'):
+        for i in os.listdir(src):
+            item = os.path.join(src, i)
+            if(os.path.isfile(item)):
+                try:
+                    os.remove(item)
+                except Exception as e:
+                    logging.error('Unable to delete file: %s: %s', item, e)
+            if(os.path.isdir(item)):
+                try:
+                    shutil.rmtree(item)
+                except Exception as e:
+                    logging('Unable to delete directory %s: %s', item, e)
+
+
 
 nr_loc = len(config.sections())-1
 t = [0 for i in range(0,nr_loc)]
