@@ -1,4 +1,5 @@
 # Status Failed doar cand a expirat timeout
+# src_type = FTP nu e foarte bine pus la puncts
 
 import argparse
 import configparser
