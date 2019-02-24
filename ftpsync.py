@@ -1,7 +1,7 @@
 import argparse
 import configparser
 import logging
-from threading import Thread
+from threading import Thread, Timer
 from multiprocessing import *
 import os
 import time
@@ -32,10 +32,6 @@ def sync(i):
     dst = config[sync_nr]['dst']
     # dst_name = config[sync_nr]['dst_name']
     # ftp_mode = config[sync_nr]['ftp_mode']
-    # update_interval = config[sync_nr]['update_interval']
-    # delete_extra_dst_content = config[sync_nr]['delete_extra_dst_content']
-    # move_files = config[sync_nr]['move_files']
-    # timeout = config[sync_nr]['timeout']
 
     if (config[sync_nr]['delete_extra_dst_content'] == 'YES' and config[sync_nr]['move_files'] == 'YES'):
         logging.error('Inconsistency in config file in [%s]: delete_extra_dst_content and move_files', sync_nr)
@@ -120,16 +116,28 @@ def sync(i):
 
 def start_sync(i):
     sync_nr = 'Sync_#'+ str(i+1)
-    try:
-        p = Process(target=sync, args=(i,))
-        p.start()
-        p.join(int(config[sync_nr]['timeout']))
-        if(p.is_alive()):
-            p.terminate()
-            logging.debug('%s reached timeout', sync_nr)
-    except Exception as e:
-        logging.error('Thread %d: %s', i, e)
-        return
+    status = 'Ok'
+    while(True):
+        try:
+            start_time = time.time()
+            p = Process(target=sync, args=(i,))
+            p.start()
+            p.join(int(config[sync_nr]['timeout']))
+            last_update = time.time()
+            if(p.is_alive()):
+                p.terminate()
+                status = 'Failed'
+                logging.debug('%s reached timeout', sync_nr)
+
+            print('%s | SRC-%s: %s >>> DST-%s: %s | Last update: %s | Sync duration: %s | Status: %s' % (
+                sync_nr, config[sync_nr]['src_type'], config[sync_nr]['src_name'], config[sync_nr]['dst_type'], config[sync_nr]['dst_name'], time.ctime(last_update), last_update-start_time, status))
+
+            while (time.time()-start_time <  int(config[sync_nr]['update_interval'])):
+                time.sleep(1)
+        except Exception as e:
+            logging.error('Thread %d: %s', i, e)
+            return
+
 
 if __name__ == "__main__":
     nr_loc = len(config.sections())-1
@@ -142,7 +150,6 @@ if __name__ == "__main__":
         except Exception as e:
             logging.error('Thread %d: %s', i, e)
             continue
-
 
 
 
