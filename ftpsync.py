@@ -5,6 +5,7 @@ from threading import Thread
 import os
 import time
 import ftputil
+import shutil
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-config", help="number of threads", nargs='?')
@@ -36,14 +37,41 @@ def sync(i):
 
     #  1. verific daca fisierele sunt la fel in ambele parti
     #  2. verific daca s-au mai facut modificari in fisierele din src de la 'last update'
+
     for root, dirs, files in os.walk(src):
         for d in dirs:
-            dir = os.path.join(root, d)[len(src):]
-            print(dir)
-        for f in files:
-            file = os.path.join(root, f)[len(src):]
-            print(file)
+            src_dir = os.path.join(root, d)
+            s_modif = os.stat(src_dir).st_mtime
+            dest_dir = os.path.join(dst, src_dir[len(src)+1:])
+            if (os.path.exists(dest_dir)):
+                d_modif = os.stat(dest_dir).st_mtime
+                logging.info('Directory %s already exists', src_dir[len(src):])
+            else:
+                try:
+                    os.makedirs(dest_dir)
+                    logging.info('Directory %s was created', dest_dir)
+                except Exception as e:
+                    logging.error('Unable to create directory %s: %s', dest_dir, e)
 
+        for f in files:
+            src_file = os.path.join(root, f)
+            s_modif = os.stat(src_file).st_mtime
+            dest_file = os.path.join(dst, src_file[len(src)+1:])
+            if (os.path.isfile(dest_file)):
+                d_modif = os.stat(dest_file).st_mtime
+            else:
+                d_modif = None
+
+            if(int(s_modif)==int(d_modif)):
+                logging.info('File %s: nothing changed', src_file[len(src):])
+                print('%s already exists' % dest_file) # !!!!!!!!!!!!!!!!!!!!!
+            else:
+                logging.info('File %s has changed in the source', src_file[len(src):])
+                print('%s has changed in the source' % dest_file) # !!!!!!!!!!!!!!!!!!!!!
+                try:
+                    shutil.copy2(src_file, dest_file[:len(dest_file)-len(f)])
+                except Exception as e:
+                    logging.error('Unable to copy %s: %s', src_file, e)
 
 nr_loc = len(config.sections())-1
 t = [0 for i in range(0,nr_loc)]
@@ -59,13 +87,7 @@ for i in range(0, nr_loc):
 
 
 
-with ftputil.FTPHost('ftp.dlptest.com', 'dlpuser@dlptest.com', 'puTeT3Yei1IJ4UYT7q0r') as host:
-    # names = host.listdir(host.curdir)
-    # for name in names:
-    #     # if host.path.isfile(name):
-    #         # Remote name, local name
-    #         # host.download(name, name)
-    #     print(name)
-    for root, dirs, files in host.walk('/'):
-        for f in files:
-            print(f)
+# with ftputil.FTPHost('ftp.dlptest.com', 'dlpuser@dlptest.com', 'puTeT3Yei1IJ4UYT7q0r') as host:
+#     for root, dirs, files in host.walk('/'):
+#         for f in files:
+#             print(f)
